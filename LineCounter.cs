@@ -46,9 +46,9 @@ namespace LineCounter
 
 
 
-        private void Start()
+        private bool Start()
         {
-            if (_project == null) return;
+            if (_project == null) return false;
 
             //reset
             _files = new List<string>();
@@ -59,13 +59,36 @@ namespace LineCounter
                 // Send an error
                 Exception e = new Exception("Project could not be found.");
                 Parakeet.Plugin.Events.Error.SendSuppressedError(this, new ErrorEventArgs(e));
-                return;
+                return false;
             }
 
+            try
+            {
+                GetAssets();
+            }
+            catch (Exception ex)
+            {
+                Log.Add(ex.Message);
 
-            GetAssets();
-            CountLines();
+                Exception e = new Exception("Something went wrong while loading project.");
+                Parakeet.Plugin.Events.Error.SendSuppressedError(this, new ErrorEventArgs(e));
+                return false;
+            }
 
+            try
+            {
+                CountLines();
+            }
+            catch (Exception ex)
+            {
+                Log.Add(ex.Message);
+
+                Exception e = new Exception("Something went wrong.");
+                Parakeet.Plugin.Events.Error.SendSuppressedError(this, new ErrorEventArgs(e));
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -212,15 +235,18 @@ namespace LineCounter
         [MenuButton("Projects/LineCounter", Summary = "The number of lines of code for the project.")]
         public void Show()
         {
-            Start();
-            StringBuilder sb = new StringBuilder();
-            sb.Append( "Lines of code: " + _pLoc + "\n" );
-            sb.Append( "Lines of comments: " + _cLoc + " + "+ _mLoc +" mixed with code \n" );
-            sb.Append( "Empty lines: " + _bLoc + "\n" );
-            sb.Append("Total raw lines: " + _tLoc + "\n");
+            if (Start())
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append("Lines of code: " + _pLoc + "\n");
+                sb.Append("Lines of comments: " + _cLoc + " + " + _mLoc + " mixed with code \n");
+                sb.Append("Empty lines: " + _bLoc + "\n");
+                sb.Append("Total raw lines: " + _tLoc + "\n");
 
 
-            ShowDialog(this, sb.ToString(), "LineCounter");
+                ShowDialog(this, sb.ToString(), Constants.Title);
+            }
+            else ShowDialog(this, "Please open a project.", Constants.Title);
         }
 
     }

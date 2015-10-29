@@ -9,6 +9,7 @@ namespace LineCounter
     public static class Constants
     {
         public static string LogFile = "Installed Plugins\\LineCounter\\log.txt";
+        public static string Title = "LineCounter";
 
     }
 }
