@@ -21,9 +21,8 @@ namespace LineCounter
     public class LineCounter : PluginBase, IEventUser
     {
         private List<string> _files = new List<string>();
-        private int _lineNumber;
         private Parakeet.Plugin.Project _project;
-        private int _bLoc = 0, _cLoc = 0, _pLoc = 0;
+        private int _bLoc = 0, _cLoc = 0, _pLoc = 0, _tLoc = 0, _mLoc = 0;
 
         
         public void Subscribe()
@@ -53,9 +52,8 @@ namespace LineCounter
 
             //reset
             _files = new List<string>();
-            _lineNumber = _pLoc = _cLoc = _bLoc = 0;
-
-            _project.ProjectDirectory = _project.ProjectDirectory;
+            _pLoc = _cLoc = _bLoc = _tLoc = _mLoc = 0;
+            
             if (!Directory.Exists(_project.ProjectDirectory))
             {
                 // Send an error
@@ -146,13 +144,12 @@ namespace LineCounter
                 else if(file.Contains(".shader"))
                 {
                     data = File.ReadAllText(file);
-                    //data = data.Replace("\n//######################_==_YOYO_SHADER_MARKER_==_######################@~", "");
                 }
 
 
                 Log.Add(file);
 
-                _lineNumber += Count(data);
+                Count(data);
 
             }
 
@@ -161,44 +158,53 @@ namespace LineCounter
 
         /// <summary>
         /// Count the lines in a piece of code
-        /// http://gmc.yoyogames.com/index.php?showtopic=494032#post_id_3661185
+        /// - Empty lines in comment blocks count as comments
         /// </summary>
         /// <param name="data">GML script to count</param>
-        private int Count(string data)
+        private void Count(string data)
         {
+            /*
+                - Empty lines in comment blocks count as comments
+                - mixed lines count as both code line and comment line
+            */
+
             bool cBlock = false;
-            int bLoc = 0, cLoc = 0, pLoc = 0;
 
-            for (int i = 0; i < data.Length; i++)
+            var lines = data.Split('\n');
+            _tLoc += lines.Length;
+
+            foreach (var line in lines)
             {
-                if (data[i] == '/' && data[i + 1] == '*')
-                    cBlock = true;
-                else if (data[i] == '*' && data[i + 1] == '/')
-                    cBlock = false;
-                else if (data[i] == '/' && data[i + 1] == '/' && !cBlock)
-                {
-                    cLoc++;
-                    continue;
-                }
-                else if (data[i] == '\r' && i > 0)
-                {
-                    if (data[i - 1] == '\n')
-                        bLoc++;
-                    continue;
-                }
-                else if (data[i] != '\n')
-                    continue;
+                //avoid trim twice
+                string trimmed = line.Trim();
 
-                if (!cBlock) pLoc++;
-                else cLoc++;
+                if (line.Contains("/*") && line.Contains("*/"))
+                    _cLoc++;
+                else if (line.Contains("/*"))
+                {
+                    cBlock = true;
+                    _cLoc++;
+                }
+                else if (line.Contains("*/"))
+                {
+                    cBlock = false;
+                    _cLoc++;
+                }
+                else if (cBlock)
+                    _cLoc++;
+                else if (trimmed.StartsWith("//"))
+                    _cLoc++;
+                else if (trimmed == "")
+                    _bLoc++;
+                else
+                {
+                    _pLoc++;
+                    if (trimmed.Contains("//"))
+                        _mLoc++;
+                }
 
             }
 
-            _pLoc += pLoc;
-            _bLoc += bLoc;
-            _cLoc += cLoc;
-
-            return pLoc;
 
         }
 
@@ -208,9 +214,10 @@ namespace LineCounter
         {
             Start();
             StringBuilder sb = new StringBuilder();
-            sb.Append( "Total lines of code: " + _pLoc + "\n" );
-            sb.Append( "Total lines of comments: " + _cLoc + "\n" );
-            //sb.Append( "Total empty lines: " + _bLoc + "\n" );
+            sb.Append( "Lines of code: " + _pLoc + "\n" );
+            sb.Append( "Lines of comments: " + _cLoc + " + "+ _mLoc +" mixed with code \n" );
+            sb.Append( "Empty lines: " + _bLoc + "\n" );
+            sb.Append("Total raw lines: " + _tLoc + "\n");
 
 
             ShowDialog(this, sb.ToString(), "LineCounter");
