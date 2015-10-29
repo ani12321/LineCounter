@@ -14,7 +14,7 @@ namespace LineCounter
 
 
 
-    [PluginTitle("LineCounter")]
+    [PluginTitle(Constants.Title)]
     [PluginAuthor("ani_xhaja@hotmail.com")]
     [PluginVersion(1, 0, 0)]
 
@@ -87,6 +87,8 @@ namespace LineCounter
                 Parakeet.Plugin.Events.Error.SendSuppressedError(this, new ErrorEventArgs(e));
                 return false;
             }
+
+            Log.Add(_project.ProjectDirectory + " " + _pLoc + " " + _cLoc + " " + _bLoc + " " + _tLoc);
 
             return true;
         }
@@ -169,9 +171,7 @@ namespace LineCounter
                     data = File.ReadAllText(file);
                 }
 
-
-                Log.Add(file);
-
+                
                 Count(data);
 
             }

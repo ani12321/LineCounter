@@ -8,8 +8,8 @@ namespace LineCounter
 {
     public static class Constants
     {
-        public static string LogFile = "Installed Plugins\\LineCounter\\log.txt";
-        public static string Title = "LineCounter";
+        public const string LogFile = "Installed Plugins\\LineCounter\\log.txt";
+        public const string Title = "LineCounter";
 
     }
 }
